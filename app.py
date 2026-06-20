@@ -14,6 +14,7 @@ MONTH_LABELS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Aoû
 def get_db():
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 def hash_pw(pw):
@@ -309,6 +310,12 @@ def delete_affiliate(aid):
     conn = get_db()
     aff = conn.execute("SELECT user_id FROM affiliates WHERE id=?", (aid,)).fetchone()
     if aff:
+        # Supprimer explicitement les données liées
+        salons = conn.execute("SELECT id FROM salons WHERE affiliate_id=?", (aid,)).fetchall()
+        for s in salons:
+            conn.execute("DELETE FROM commissions WHERE salon_id=?", (s['id'],))
+        conn.execute("DELETE FROM salons WHERE affiliate_id=?", (aid,))
+        conn.execute("DELETE FROM versements WHERE affiliate_id=?", (aid,))
         conn.execute("DELETE FROM affiliates WHERE id=?", (aid,))
         conn.execute("DELETE FROM users WHERE id=?", (aff['user_id'],))
         conn.commit()
@@ -406,6 +413,7 @@ def delete_salon(sid):
     if not payload or payload['role'] != 'admin':
         return jsonify({'error': 'Accès refusé'}), 403
     conn = get_db()
+    conn.execute("DELETE FROM commissions WHERE salon_id=?", (sid,))
     conn.execute("DELETE FROM salons WHERE id=?", (sid,))
     conn.commit()
     conn.close()
