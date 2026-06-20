@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>hibee — Suivi Affilié</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --dark:#0A0A0A;--green:#10B981;--red:#EF4444;--blue:#3B82F6;
+  --border:#E5E7EB;--muted:#6B7280;--text:#1A1A1A;
+  --radius:12px;--shadow:0 2px 12px rgba(0,0,0,.07);
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#F3F4F6;color:var(--text);min-height:100vh}
+
+.topbar{background:#0A0A0A;padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between}
+.topbar img{height:26px;filter:invert(1)}
+.topbar .badge{background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-size:11px;
+  padding:4px 10px;border-radius:20px;font-weight:600;letter-spacing:.3px}
+
+.container{max-width:900px;margin:0 auto;padding:28px 20px}
+
+.profile-card{background:#0A0A0A;color:#fff;border-radius:var(--radius);padding:24px;
+  margin-bottom:24px;display:flex;align-items:center;gap:16px}
+.avatar{width:56px;height:56px;background:#333;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:22px;font-weight:800;flex-shrink:0;
+  border:2px solid rgba(255,255,255,.15)}
+.profile-name{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.profile-meta{display:flex;gap:16px;margin-top:8px;flex-wrap:wrap}
+.profile-meta span{font-size:12px;color:rgba(255,255,255,.6);display:flex;align-items:center;gap:5px}
+.badge-code{background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:700;
+  padding:3px 10px;border-radius:20px}
+.badge-statut{background:#10B981;color:#fff;font-size:11px;font-weight:700;
+  padding:3px 9px;border-radius:20px}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+.stat{background:#fff;border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);
+  border:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.stat-icon{width:42px;height:42px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;font-size:18px;flex-shrink:0}
+.stat-icon.blue{background:#EFF6FF;color:var(--blue)}
+.stat-icon.orange{background:#FFF8EC;color:#F5A623}
+.stat-icon.green{background:#ECFDF5;color:var(--green)}
+.stat-icon.red{background:#FEF2F2;color:var(--red)}
+.stat-val{font-size:20px;font-weight:800;letter-spacing:-.5px}
+.stat-label{font-size:11px;color:var(--muted);margin-top:2px;font-weight:500}
+
+.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);
+  overflow:hidden;margin-bottom:20px;border:1px solid var(--border)}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;
+  align-items:center;justify-content:space-between}
+.card-title{font-size:14px;font-weight:700}
+.card-body{padding:18px 20px}
+
+.salon-item{border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:12px}
+.salon-item:last-child{margin-bottom:0}
+.salon-name{font-size:14px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.salon-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:10px}
+.salon-meta span strong{color:var(--text)}
+
+.comm-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin-top:10px}
+.comm-month{background:#F9FAFB;border-radius:6px;padding:6px 4px;text-align:center;font-size:10px;border:1px solid var(--border)}
+.comm-month .label{color:var(--muted);margin-bottom:3px;font-weight:600;text-transform:uppercase}
+.comm-month .amount{font-weight:700;font-size:11px;color:var(--text)}
+.comm-month .amount.zero{color:#D1D5DB;font-weight:400}
+.comm-month.paid{background:#ECFDF5;border-color:#A7F3D0}
+.comm-month.paid .amount{color:var(--green)}
+.comm-month .status{font-size:9px;margin-top:2px;color:var(--muted)}
+.comm-month.paid .status{color:var(--green)}
+
+.vers-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F3F4F6}
+.vers-item:last-child{border-bottom:none}
+.vers-amount{font-size:15px;font-weight:800;color:var(--green)}
+.vers-meta{font-size:11px;color:var(--muted);margin-top:2px}
+
+.chart-wrap{height:220px;position:relative}
+
+.readonly-notice{background:#F9FAFB;border:1px solid var(--border);border-radius:9px;
+  padding:10px 14px;font-size:12px;color:var(--muted);text-align:center;margin-bottom:20px;
+  display:flex;align-items:center;justify-content:center;gap:6px}
+
+.empty{text-align:center;padding:32px 20px;color:var(--muted)}
+.error-page{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:12px;color:var(--muted)}
+.error-page .code{font-size:64px}
+.error-page p{font-size:16px}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#FAFAFA;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid #F3F4F6;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.badge.green{background:#ECFDF5;color:#059669}
+.badge.orange{background:#FFF7ED;color:#EA580C}
+</style>
+</head>
+<body>
+
+<div id="error-page" class="error-page" style="display:none">
+  <div class="code">🔗</div>
+  <p>Lien invalide ou expiré.</p>
+  <p style="font-size:13px">Contactez hibee pour obtenir un nouveau lien.</p>
+</div>
+
+<div id="main-page" style="display:none">
+  <div class="topbar">
+    <img src="/logo.svg" alt="hibee"/>
+    <span class="badge">Espace Lecture Seule</span>
+  </div>
+
+  <div class="container">
+    <div class="readonly-notice">
+      🔒 Accès en lecture seule — Ces informations sont confidentielles et vous sont réservées.
+    </div>
+
+    <!-- PROFIL -->
+    <div class="profile-card">
+      <div class="avatar" id="pub-avatar">?</div>
+      <div>
+        <div class="profile-name" id="pub-name">—</div>
+        <div class="profile-meta" id="pub-meta"></div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid" id="pub-stats"></div>
+
+    <!-- GRAPHIQUE -->
+    <div class="card" id="chart-card" style="display:none">
+      <div class="card-header"><span class="card-title">📈 Commissions Mensuelles</span></div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="pub-chart"></canvas></div></div>
+    </div>
+
+    <!-- SALONS -->
+    <div class="card">
+      <div class="card-header"><span class="card-title" id="salons-title">Salons Référencés</span></div>
+      <div class="card-body" id="pub-salons"></div>
+    </div>
+
+    <!-- VERSEMENTS -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Historique des Versements</span></div>
+      <div class="card-body" id="pub-versements"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MONTHS = ['janv','fevr','mars','avr','mai','juin','juil','aout','sept','oct','nov','dec'];
+const ML = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
+const ML_FULL = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+function fmt(n){ return Math.floor(Number(n||0)).toLocaleString('fr-MA')+' MAD'; }
+function fmtDate(d){ if(!d)return '—'; try{return new Date(d).toLocaleDateString('fr-FR');}catch{return d;} }
+function fmtPct(n){ return (Number(n||0)*100).toFixed(0)+'%'; }
+
+async function load(){
+  const token = location.pathname.split('/p/')[1];
+  if(!token){ showError(); return; }
+  try {
+    const res = await fetch('/api/public/'+token);
+    if(!res.ok){ showError(); return; }
+    const data = await res.json();
+    render(data);
+  } catch(e){ showError(); }
+}
+
+function showError(){
+  document.getElementById('error-page').style.display='flex';
+}
+
+function render({affilié: aff, salons, versements, totaux}){
+  document.title = `hibee — ${aff.prenom} ${aff.nom}`;
+  document.getElementById('main-page').style.display='block';
+
+  // Profil
+  document.getElementById('pub-avatar').textContent = (aff.prenom||'?')[0].toUpperCase();
+  document.getElementById('pub-name').textContent = `${aff.prenom} ${aff.nom}`;
+  document.getElementById('pub-meta').innerHTML = `
+    ${aff.instagram?`<span>📸 ${aff.instagram}</span>`:''}
+    <span>🏷️ Code parrain : <strong>${aff.code_parrain}</strong></span>
+    <span>💰 Commission : <strong>${fmtPct(aff.taux_commission)}</strong> / ${aff.duree_commission} mois</span>
+    <span>📅 Membre depuis : <strong>${fmtDate(aff.date_adhesion)}</strong></span>
+    <span class="badge-statut">${aff.statut}</span>`;
+
+  // Stats
+  document.getElementById('pub-stats').innerHTML = `
+    <div class="stat"><div class="stat-icon blue">✂️</div><div><div class="stat-val">${totaux.nb_salons}</div><div class="stat-label">Salons Référencés</div></div></div>
+    <div class="stat"><div class="stat-icon orange">💰</div><div><div class="stat-val">${fmt(totaux.commission_totale)}</div><div class="stat-label">Commission Totale</div></div></div>
+    <div class="stat"><div class="stat-icon green">✅</div><div><div class="stat-val">${fmt(totaux.commission_versee)}</div><div class="stat-label">Reçue</div></div></div>
+    <div class="stat"><div class="stat-icon red">⏳</div><div><div class="stat-val">${fmt(totaux.commission_restante)}</div><div class="stat-label">En Attente</div></div></div>`;
+
+  // Graphique
+  const monthly = MONTHS.map(m => salons.reduce((t,s)=>t+Math.floor(s.commissions['comm_'+m]||0),0));
+  if(monthly.some(v=>v>0)){
+    document.getElementById('chart-card').style.display='block';
+    const ctx = document.getElementById('pub-chart').getContext('2d');
+    new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels: ML,
+        datasets:[{label:'Commission (MAD)',data:monthly,backgroundColor:'rgba(0,0,0,.8)',borderRadius:5}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{y:{ticks:{callback:v=>v.toLocaleString()},grid:{color:'#F3F4F6'}}}}
+    });
+  }
+
+  // Salons
+  document.getElementById('salons-title').textContent = `Salons Référencés (${salons.length})`;
+  if(!salons.length){
+    document.getElementById('pub-salons').innerHTML = '<div class="empty">Aucun salon référencé pour le moment.</div>';
+  } else {
+    document.getElementById('pub-salons').innerHTML = salons.map(s=>{
+      const c = s.commissions||{};
+      const total = MONTHS.reduce((sum,m)=>sum+Math.floor(c['comm_'+m]||0),0);
+      const paidCount = MONTHS.filter(m=>c['paid_'+m]&&c['comm_'+m]>0).length;
+      const activeMonths = MONTHS.filter(m=>c['comm_'+m]>0).length;
+      return `
+      <div class="salon-item">
+        <div class="salon-name">
+          <span>✂️ ${s.nom||'—'} <span style="font-weight:400;color:var(--muted);font-size:13px">— ${s.ville||'—'}</span></span>
+          <span class="badge ${paidCount===activeMonths&&activeMonths>0?'green':'orange'}">${paidCount}/${activeMonths} mois payés</span>
+        </div>
+        <div class="salon-meta">
+          <span>👤 <strong>${s.nb_employes||0}</strong> employé(s)</span>
+          <span>💵 Abonnement : <strong>${fmt(s.abonnement)}</strong>/mois</span>
+          <span>📅 Depuis : <strong>${fmtDate(s.date_debut)}</strong></span>
+          <span>📊 Total comm. : <strong>${fmt(total)}</strong></span>
+        </div>
+        <div class="comm-grid">
+          ${MONTHS.map((m,i)=>{
+            const v = Math.floor(c['comm_'+m]||0);
+            const paid = c['paid_'+m];
+            return `<div class="comm-month ${paid&&v>0?'paid':''}">
+              <div class="label">${ML[i]}</div>
+              <div class="amount ${v===0?'zero':''}">${v>0?v.toLocaleString('fr-MA'):'-'}</div>
+              ${v>0?`<div class="status">${paid?'✓ Reçu':'En att.'}</div>`:''}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Versements
+  const totalVerse = versements.reduce((s,v)=>s+v.montant,0);
+  if(!versements.length){
+    document.getElementById('pub-versements').innerHTML = '<div class="empty">Aucun versement enregistré pour le moment.</div>';
+  } else {
+    document.getElementById('pub-versements').innerHTML = `
+      <div style="background:#F0FDF4;border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:var(--muted)">Total versé</span>
+        <strong style="color:var(--green);font-size:17px">${fmt(totalVerse)}</strong>
+      </div>
+      ${versements.map(v=>`
+        <div class="vers-item">
+          <div>
+            <div class="vers-amount">${fmt(v.montant)}</div>
+            ${v.note?`<div class="vers-meta">${v.note}</div>`:''}
+          </div>
+          <div class="vers-meta">${fmtDate(v.date)}</div>
+        </div>`).join('')}`;
+  }
+}
+
+load();
+</script>
+</body>
+</html>

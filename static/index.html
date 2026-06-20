@@ -345,7 +345,7 @@ function toast(msg, ok=true){
 }
 
 function fmt(n){
-  return Number(n||0).toLocaleString('fr-MA',{minimumFractionDigits:0,maximumFractionDigits:0})+' MAD';
+  return Math.floor(Number(n||0)).toLocaleString('fr-MA')+' MAD';
 }
 function fmtPct(n){ return (Number(n||0)*100).toFixed(0)+'%'; }
 function fmtDate(d){ if(!d)return '—'; try{return new Date(d).toLocaleDateString('fr-FR');}catch{return d;} }
@@ -566,6 +566,7 @@ function renderAffTable(list){
         <td>
           <div style="display:flex;gap:5px">
             <button class="btn btn-sm btn-outline" onclick="openAffDetail(${a.id},'${(a.prenom||'')+' '+(a.nom||'')}')">Détail</button>
+            <button class="btn btn-sm btn-outline" onclick="copyLink('${a.token_public||''}')" title="Copier le lien de suivi">🔗 Lien</button>
             <button class="btn btn-sm btn-outline" onclick="openEditAff(${a.id})">✏️</button>
             <button class="btn btn-sm btn-danger" onclick="deleteAff(${a.id})">🗑</button>
           </div>
@@ -672,6 +673,28 @@ async function saveEditAff(id){
     })});
     closeModal(); toast('Affilié mis à jour'); renderAffiliates();
   } catch(e){ toast(e.message,false); }
+}
+
+function copyLink(token){
+  if(!token){ toast('Lien non disponible',false); return; }
+  const url = `${location.origin}/p/${token}`;
+  navigator.clipboard.writeText(url).then(()=>{
+    toast('🔗 Lien copié dans le presse-papier !');
+  }).catch(()=>{
+    openModal('Lien de suivi', `
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">
+        Copiez ce lien et envoyez-le à l'affilié. Il peut consulter ses données sans se connecter.
+      </p>
+      <div style="background:#F3F4F6;border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px">
+        <input type="text" value="${url}" readonly
+          style="flex:1;border:none;background:none;font-size:13px;font-family:monospace;outline:none;color:var(--text)"
+          onclick="this.select()"/>
+        <button class="btn btn-black btn-sm" onclick="navigator.clipboard.writeText('${url}');toast('Copié !')">Copier</button>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px">
+        ⚠️ Ce lien donne accès en lecture seule aux données de cet affilié. Ne le partagez qu'avec lui.
+      </p>`);
+  });
 }
 
 async function deleteAff(id){

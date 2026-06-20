@@ -1,4 +1,4 @@
-import sqlite3, hashlib, jwt, json, os
+import sqlite3, hashlib, jwt, json, os, math, secrets
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -42,8 +42,15 @@ def init_db():
         instagram TEXT, taux_commission REAL DEFAULT 0.3,
         duree_commission INTEGER DEFAULT 3,
         date_adhesion TEXT, statut TEXT DEFAULT 'Actif',
-        code_parrain TEXT UNIQUE
+        code_parrain TEXT UNIQUE,
+        token_public TEXT UNIQUE
     )''')
+    conn.commit()
+    # Migration : ajouter token_public si absente
+    cols = [r[1] for r in c.execute("PRAGMA table_info(affiliates)").fetchall()]
+    if 'token_public' not in cols:
+        c.execute("ALTER TABLE affiliates ADD COLUMN token_public TEXT")
+        conn.commit()
     c.execute('''CREATE TABLE IF NOT EXISTS salons (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         affiliate_id INTEGER REFERENCES affiliates(id) ON DELETE CASCADE,
@@ -63,6 +70,13 @@ def init_db():
         montant REAL, date TEXT, note TEXT
     )''')
 
+    # Générer un token pour les affiliés qui n'en ont pas
+    conn.commit()
+    affs_sans_token = c.execute("SELECT id FROM affiliates WHERE token_public IS NULL").fetchall()
+    for a in affs_sans_token:
+        c.execute("UPDATE affiliates SET token_public=? WHERE id=?",
+                  (secrets.token_urlsafe(24), a['id']))
+
     # Admin
     c.execute("INSERT OR IGNORE INTO users (email,password,role) VALUES (?,?,?)",
               ('admin@hibee.ma', hash_pw('Admin2024!'), 'admin'))
@@ -75,10 +89,11 @@ def init_db():
         existing = c.execute("SELECT id FROM affiliates WHERE user_id=?", (user['id'],)).fetchone()
         if not existing:
             c.execute('''INSERT INTO affiliates (user_id,nom,prenom,email,telephone,instagram,
-                         taux_commission,duree_commission,date_adhesion,statut,code_parrain)
-                         VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
+                         taux_commission,duree_commission,date_adhesion,statut,code_parrain,token_public)
+                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
                       (user['id'],'Ben Youssef','Sarbine','affilie1@hibee.ma',
-                       '+212 6XX XXX XXX','@influenceur1',0.3,3,'2026-01-01','Actif','AFF001'))
+                       '+212 6XX XXX XXX','@influenceur1',0.3,3,'2026-01-01','Actif','AFF001',
+                       secrets.token_urlsafe(24)))
             conn.commit()
     conn.close()
 
@@ -99,7 +114,7 @@ def calc_commissions(nb_employes, date_debut, taux, duree, prix_par_employe):
     if date_debut and abo > 0 and duree > 0:
         try:
             dt = datetime.strptime(date_debut, '%Y-%m-%d')
-            comm_mensuelle = round(abo * taux, 2)
+            comm_mensuelle = math.floor(abo * taux)
             for i in range(duree):
                 # +1 car commission démarre le mois suivant
                 month_idx = (dt.month - 1 + 1 + i) % 12
@@ -233,15 +248,16 @@ def create_affiliate():
                   (data['email'], hash_pw(pw), 'affiliate'))
         user_id = c.lastrowid
         code = 'AFF' + str(100 + user_id)
+        token_pub = secrets.token_urlsafe(24)
         c.execute('''INSERT INTO affiliates (user_id,nom,prenom,email,telephone,instagram,
-                     taux_commission,duree_commission,date_adhesion,statut,code_parrain)
-                     VALUES (?,?,?,?,?,?,?,?,?,?,?)''',
+                     taux_commission,duree_commission,date_adhesion,statut,code_parrain,token_public)
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
                   (user_id, data.get('nom',''), data.get('prenom',''), data['email'],
                    data.get('telephone',''), data.get('instagram',''),
                    float(data.get('taux_commission', 0.3)),
                    int(data.get('duree_commission', 3)),
                    data.get('date_adhesion', datetime.now().strftime('%Y-%m-%d')),
-                   data.get('statut','Actif'), code))
+                   data.get('statut','Actif'), code, token_pub))
         conn.commit()
         aff_id = c.lastrowid
         conn.close()
@@ -485,6 +501,66 @@ def get_stats():
         'top_affilies': [{'nom': r['prenom']+' '+r['nom'], 'total': round(r['total'],2)} for r in top]
     })
 
+# ── LIEN PUBLIC (lecture seule) ───────────────────────────────────────────────
+
+@app.route('/api/public/<token>', methods=['GET'])
+def public_view(token):
+    conn = get_db()
+    aff = conn.execute("SELECT * FROM affiliates WHERE token_public=?", (token,)).fetchone()
+    if not aff:
+        conn.close()
+        return jsonify({'error': 'Lien invalide ou expiré'}), 404
+    prix = float(get_setting('prix_par_employe') or 200)
+    salons = conn.execute("SELECT * FROM salons WHERE affiliate_id=?", (aff['id'],)).fetchall()
+    salons_list = []
+    for s in salons:
+        salon = dict(s)
+        salon['abonnement'] = (s['nb_employes'] or 0) * prix
+        comm = conn.execute("SELECT * FROM commissions WHERE salon_id=?", (s['id'],)).fetchone()
+        salon['commissions'] = dict(comm) if comm else {}
+        salons_list.append(salon)
+    versements = conn.execute(
+        "SELECT * FROM versements WHERE affiliate_id=? ORDER BY date DESC", (aff['id'],)
+    ).fetchall()
+    comm_sum = '+'.join([f'c.comm_{m}' for m in MONTHS])
+    total_comm = conn.execute(f"""
+        SELECT COALESCE(SUM({comm_sum}),0) as t
+        FROM commissions c JOIN salons s ON c.salon_id=s.id WHERE s.affiliate_id=?
+    """, (aff['id'],)).fetchone()['t']
+    total_verse = conn.execute(
+        "SELECT COALESCE(SUM(montant),0) as t FROM versements WHERE affiliate_id=?", (aff['id'],)
+    ).fetchone()['t']
+    conn.close()
+    return jsonify({
+        'affilié': {
+            'prenom': aff['prenom'], 'nom': aff['nom'],
+            'instagram': aff['instagram'], 'code_parrain': aff['code_parrain'],
+            'taux_commission': aff['taux_commission'],
+            'duree_commission': aff['duree_commission'],
+            'date_adhesion': aff['date_adhesion'], 'statut': aff['statut'],
+        },
+        'salons': salons_list,
+        'versements': [dict(v) for v in versements],
+        'totaux': {
+            'commission_totale': math.floor(total_comm),
+            'commission_versee': math.floor(total_verse),
+            'commission_restante': math.floor(total_comm - total_verse),
+            'nb_salons': len(salons_list),
+        }
+    })
+
+@app.route('/api/affiliates/<int:aid>/regenerate-token', methods=['POST'])
+def regenerate_token(aid):
+    payload = verify_token(request)
+    if not payload or payload['role'] != 'admin':
+        return jsonify({'error': 'Accès refusé'}), 403
+    new_token = secrets.token_urlsafe(24)
+    conn = get_db()
+    conn.execute("UPDATE affiliates SET token_public=? WHERE id=?", (new_token, aid))
+    conn.commit()
+    conn.close()
+    return jsonify({'token_public': new_token})
+
 # ── PASSWORD ──────────────────────────────────────────────────────────────────
 
 @app.route('/api/change-password', methods=['POST'])
@@ -504,6 +580,10 @@ def change_password():
     return jsonify({'ok': True})
 
 # ── STATIC ────────────────────────────────────────────────────────────────────
+
+@app.route('/p/<token>')
+def public_page(token):
+    return send_from_directory('static', 'public.html')
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
