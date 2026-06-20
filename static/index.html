@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>hibee — Gestion Affiliés</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bee:#000;--bee-hover:#222;--bee-light:#F5F5F5;
+  --accent:#F5A623;--accent-light:#FFF8EC;
+  --dark:#0A0A0A;--sidebar:#0A0A0A;
+  --text:#1A1A1A;--muted:#6B7280;--border:#E5E7EB;
+  --green:#10B981;--red:#EF4444;--blue:#3B82F6;--purple:#8B5CF6;
+  --radius:12px;--shadow:0 2px 12px rgba(0,0,0,.07);
+}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F3F4F6;color:var(--text);min-height:100vh}
+
+/* ── LOGIN ──────────────────────────────────────────────────────────── */
+.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:#0A0A0A}
+.login-card{background:#fff;border-radius:20px;padding:48px 40px;width:420px;
+  box-shadow:0 24px 80px rgba(0,0,0,.4)}
+.login-logo{text-align:center;margin-bottom:36px}
+.login-logo img{height:52px;filter:invert(1);margin-bottom:12px}
+.login-logo p{color:var(--muted);font-size:14px}
+.login-form .field{margin-bottom:18px}
+.login-form label{display:block;font-size:12px;font-weight:700;color:var(--muted);
+  margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px}
+.login-form input{width:100%;padding:11px 14px;border:1.5px solid var(--border);
+  border-radius:9px;font-size:15px;transition:.2s;outline:none;color:var(--text)}
+.login-form input:focus{border-color:#000}
+.btn-login{width:100%;padding:13px;background:#000;color:#fff;border:none;
+  border-radius:9px;font-size:15px;font-weight:700;cursor:pointer;transition:.2s;letter-spacing:.3px}
+.btn-login:hover{background:#222}
+.error-msg{background:#FEF2F2;color:#DC2626;padding:10px 14px;border-radius:8px;
+  font-size:13px;margin-bottom:16px;display:none}
+.login-demo{background:#F9FAFB;border-radius:10px;padding:14px;margin-top:20px;border:1px solid var(--border)}
+.login-demo p{font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.login-demo code{display:block;font-size:12px;color:#374151;margin:2px 0;font-family:'SF Mono',monospace}
+
+/* ── APP SHELL ──────────────────────────────────────────────────────── */
+#app{display:none;min-height:100vh}
+.layout{display:flex;min-height:100vh}
+
+/* ── SIDEBAR ────────────────────────────────────────────────────────── */
+.sidebar{width:250px;background:#0A0A0A;color:#fff;display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;height:100vh;z-index:100}
+.sidebar-header{padding:24px 20px 18px;border-bottom:1px solid rgba(255,255,255,.07)}
+.sidebar-header img{height:28px;filter:invert(1)}
+.sidebar-role{font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;
+  letter-spacing:1.5px;margin-top:8px;font-weight:600}
+.sidebar-nav{flex:1;padding:12px 10px;overflow-y:auto}
+.nav-section{font-size:10px;color:rgba(255,255,255,.25);text-transform:uppercase;
+  letter-spacing:1.5px;padding:14px 10px 6px;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;
+  cursor:pointer;font-size:13.5px;font-weight:500;transition:.15s;
+  color:rgba(255,255,255,.6);margin-bottom:1px}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-item.active{background:#fff;color:#000}
+.nav-item .icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.sidebar-footer{padding:14px 10px;border-top:1px solid rgba(255,255,255,.07)}
+.user-badge{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px}
+.user-badge .avatar{width:34px;height:34px;background:#333;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;
+  color:#fff;flex-shrink:0;border:1px solid rgba(255,255,255,.15)}
+.user-badge .info{flex:1;min-width:0}
+.user-badge .uname{font-size:12px;font-weight:600;color:rgba(255,255,255,.9);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-badge .urole{font-size:10px;color:rgba(255,255,255,.35)}
+.btn-logout{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;
+  cursor:pointer;font-size:12px;color:rgba(255,255,255,.4);transition:.15s;
+  margin-top:2px;border:none;background:none;width:100%;text-align:left}
+.btn-logout:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.06)}
+
+/* ── MAIN ───────────────────────────────────────────────────────────── */
+.main{flex:1;margin-left:250px;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:#fff;padding:0 32px;height:58px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar h2{font-size:17px;font-weight:700;color:var(--dark)}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+.content{padding:28px 32px;flex:1}
+
+/* ── STAT CARDS ─────────────────────────────────────────────────────── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:#fff;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:14px;border:1px solid var(--border)}
+.stat-icon{width:46px;height:46px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:20px;flex-shrink:0}
+.stat-icon.bee{background:#F5F5F5;color:#000}
+.stat-icon.green{background:#ECFDF5;color:var(--green)}
+.stat-icon.blue{background:#EFF6FF;color:var(--blue)}
+.stat-icon.purple{background:#F5F3FF;color:var(--purple)}
+.stat-icon.red{background:#FEF2F2;color:var(--red)}
+.stat-icon.orange{background:var(--accent-light);color:var(--accent)}
+.stat-value{font-size:22px;font-weight:800;color:var(--dark);line-height:1;letter-spacing:-.5px}
+.stat-label{font-size:12px;color:var(--muted);margin-top:3px;font-weight:500}
+
+/* ── CARD ───────────────────────────────────────────────────────────── */
+.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);
+  overflow:hidden;margin-bottom:20px;border:1px solid var(--border)}
+.card-header{padding:16px 22px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border)}
+.card-title{font-size:14px;font-weight:700;color:var(--dark)}
+.card-body{padding:20px 22px}
+
+/* ── TABLE ──────────────────────────────────────────────────────────── */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{background:#FAFAFA;padding:9px 14px;text-align:left;font-size:11px;font-weight:700;
+  color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+td{padding:11px 14px;border-bottom:1px solid #F3F4F6;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#FAFAFA}
+
+/* ── BADGES ─────────────────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.2px}
+.badge.green{background:#ECFDF5;color:#059669}
+.badge.red{background:#FEF2F2;color:#DC2626}
+.badge.orange{background:#FFF7ED;color:#EA580C}
+.badge.blue{background:#EFF6FF;color:#2563EB}
+.badge.gray{background:#F3F4F6;color:#6B7280}
+.badge.black{background:#000;color:#fff}
+
+/* ── BUTTONS ────────────────────────────────────────────────────────── */
+.btn{padding:8px 15px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;
+  border:none;display:inline-flex;align-items:center;gap:5px;transition:.15s;line-height:1}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:6px}
+.btn-black{background:#000;color:#fff}
+.btn-black:hover{background:#222}
+.btn-outline{background:#fff;color:var(--text);border:1.5px solid var(--border)}
+.btn-outline:hover{border-color:#000;color:#000}
+.btn-danger{background:#FEF2F2;color:var(--red);border:none}
+.btn-danger:hover{background:var(--red);color:#fff}
+.btn-success{background:#ECFDF5;color:var(--green);border:none}
+.btn-success:hover{background:var(--green);color:#fff}
+
+/* ── MODAL ──────────────────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;
+  display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px)}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:90vh;
+  overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,.3)}
+.modal.wide{max-width:900px}
+.modal-header{padding:18px 24px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1}
+.modal-header h3{font-size:16px;font-weight:700}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border-radius:6px;transition:.15s}
+.modal-close:hover{background:#F3F4F6;color:var(--text)}
+.modal-body{padding:22px 24px}
+.modal-footer{padding:14px 24px;border-top:1px solid var(--border);
+  display:flex;justify-content:flex-end;gap:8px;background:#FAFAFA;border-radius:0 0 16px 16px}
+
+/* ── FORM ───────────────────────────────────────────────────────────── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-full{grid-column:1/-1}
+.field-group{display:flex;flex-direction:column;gap:5px}
+.field-group label{font-size:11px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.5px}
+.field-group input,.field-group select{padding:9px 11px;border:1.5px solid var(--border);
+  border-radius:8px;font-size:14px;outline:none;transition:.15s;color:var(--text);background:#fff}
+.field-group input:focus,.field-group select:focus{border-color:#000}
+.field-group input[readonly]{background:#F9FAFB;color:var(--muted)}
+.field-hint{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* ── COMMISSION TABLE ───────────────────────────────────────────────── */
+.comm-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.comm-scroll table{min-width:860px;font-size:12px}
+.comm-scroll th{font-size:10px;padding:7px 10px}
+.comm-scroll td{padding:8px 10px;text-align:center}
+.paid-check{width:16px;height:16px;cursor:pointer;accent-color:var(--green)}
+.comm-amount{font-weight:700;font-size:13px;color:var(--dark)}
+.comm-zero{color:#D1D5DB}
+
+/* ── TABS ───────────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:3px;background:#F3F4F6;padding:3px;border-radius:9px;margin-bottom:20px}
+.tab{padding:7px 14px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;
+  color:var(--muted);transition:.15s;border:none;background:none;flex:1;text-align:center}
+.tab.active{background:#fff;color:var(--dark);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+
+/* ── CHART ──────────────────────────────────────────────────────────── */
+.chart-wrap{position:relative;height:260px}
+
+/* ── PROFILE HEADER ─────────────────────────────────────────────────── */
+.profile-header{background:#0A0A0A;color:#fff;border-radius:var(--radius);
+  padding:26px;margin-bottom:22px;display:flex;align-items:center;gap:18px}
+.profile-avatar{width:62px;height:62px;background:#333;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:24px;
+  font-weight:800;color:#fff;flex-shrink:0;border:2px solid rgba(255,255,255,.15)}
+.profile-name{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.profile-meta{display:flex;gap:16px;margin-top:8px;flex-wrap:wrap}
+.profile-meta span{font-size:12px;color:rgba(255,255,255,.6);display:flex;align-items:center;gap:5px}
+
+/* ── SEARCH ─────────────────────────────────────────────────────────── */
+.search-wrap{position:relative}
+.search-wrap input{padding:8px 12px 8px 34px;border:1.5px solid var(--border);
+  border-radius:8px;font-size:13px;outline:none;width:240px;transition:.15s}
+.search-wrap input:focus{border-color:#000}
+.search-wrap .si{position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  color:var(--muted);font-size:15px;pointer-events:none}
+
+/* ── EMPTY ──────────────────────────────────────────────────────────── */
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-icon{font-size:44px;margin-bottom:12px;display:block;opacity:.5}
+
+/* ── TOAST ──────────────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:24px;right:24px;color:#fff;padding:11px 18px;
+  border-radius:9px;font-size:13px;font-weight:600;z-index:9999;
+  box-shadow:0 4px 20px rgba(0,0,0,.25);display:none;max-width:320px}
+.toast.show{display:block;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* ── INFO BANNER ────────────────────────────────────────────────────── */
+.info-banner{background:#F0FDF4;border:1px solid #A7F3D0;border-radius:9px;
+  padding:12px 14px;font-size:13px;color:#065F46;margin-bottom:16px;display:flex;align-items:flex-start;gap:8px}
+.warn-banner{background:#FFFBEB;border:1px solid #FDE68A;border-radius:9px;
+  padding:12px 14px;font-size:13px;color:#92400E;margin-bottom:16px;display:flex;align-items:flex-start;gap:8px}
+
+/* ── SETTINGS BLOCK ─────────────────────────────────────────────────── */
+.setting-row{display:flex;align-items:center;justify-content:space-between;
+  padding:14px 0;border-bottom:1px solid var(--border)}
+.setting-row:last-child{border-bottom:none}
+.setting-label{font-size:14px;font-weight:600}
+.setting-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.setting-control{display:flex;align-items:center;gap:10px}
+.setting-control input{width:120px;padding:8px 10px;border:1.5px solid var(--border);
+  border-radius:7px;font-size:14px;font-weight:700;text-align:center;outline:none;transition:.15s}
+.setting-control input:focus{border-color:#000}
+
+/* ── VERSEMENTS ─────────────────────────────────────────────────────── */
+.vers-item{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;border-bottom:1px solid #F3F4F6}
+.vers-item:last-child{border-bottom:none}
+.vers-amount{font-size:16px;font-weight:800;color:var(--green)}
+.vers-meta{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── TOP AFFILIES ────────────────────────────────────────────────────── */
+.top-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F3F4F6}
+.top-item:last-child{border-bottom:none}
+.top-rank{width:26px;height:26px;border-radius:50%;background:#F3F4F6;display:flex;
+  align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);flex-shrink:0}
+.top-rank.gold{background:#FEF3C7;color:#D97706}
+
+/* ── SALON CARD ─────────────────────────────────────────────────────── */
+.salon-card{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.salon-card-header{background:#FAFAFA;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.salon-card-body{padding:16px}
+.salon-meta{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin-bottom:14px}
+.salon-meta span{display:flex;align-items:center;gap:5px;color:var(--muted)}
+.salon-meta strong{color:var(--text)}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ════════════════════════════════════════════════════════════════ -->
+<div id="login-page" class="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="/logo.svg" alt="hibee"/>
+      <p>Plateforme de Gestion Affiliés</p>
+    </div>
+    <div id="login-error" class="error-msg"></div>
+    <div class="login-form">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="votre@email.com" autocomplete="email"/>
+      </div>
+      <div class="field">
+        <label>Mot de passe</label>
+        <input type="password" id="login-pw" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <button class="btn-login" onclick="doLogin()">Se connecter</button>
+    </div>
+    <div class="login-demo">
+      <p>Comptes démo</p>
+      <code>Admin : admin@hibee.ma / Admin2024!</code>
+      <code>Affilié : affilie1@hibee.ma / Affilie2024!</code>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ══════════════════════════════════════════════════════════════════ -->
+<div id="app">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <img src="/logo.svg" alt="hibee"/>
+        <div class="sidebar-role" id="sidebar-role"></div>
+      </div>
+      <nav class="sidebar-nav" id="sidebar-nav"></nav>
+      <div class="sidebar-footer">
+        <div class="user-badge">
+          <div class="avatar" id="user-avatar">A</div>
+          <div class="info">
+            <div class="uname" id="user-name">—</div>
+            <div class="urole" id="user-role-label">—</div>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()">← Déconnexion</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <h2 id="page-title">Dashboard</h2>
+        <div class="topbar-actions" id="topbar-actions"></div>
+      </div>
+      <div class="content" id="page-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL ════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-box">
+    <div class="modal-header">
+      <h3 id="modal-title"></h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let TOKEN = localStorage.getItem('hbtoken') || '';
+let USER_ROLE = '', USER_EMAIL = '';
+let CURRENT_AFF_ID = null;
+let chartInstance = null;
+let SETTINGS = {};
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+
+function toast(msg, ok=true){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = ok ? '#10B981' : '#EF4444';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+function fmt(n){
+  return Number(n||0).toLocaleString('fr-MA',{minimumFractionDigits:0,maximumFractionDigits:0})+' MAD';
+}
+function fmtPct(n){ return (Number(n||0)*100).toFixed(0)+'%'; }
+function fmtDate(d){ if(!d)return '—'; try{return new Date(d).toLocaleDateString('fr-FR');}catch{return d;} }
+
+function commMoisSuivant(date_debut){
+  if(!date_debut) return '—';
+  try {
+    const dt = new Date(date_debut);
+    dt.setMonth(dt.getMonth()+1);
+    return dt.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  } catch{ return '—'; }
+}
+
+async function api(path, opts={}){
+  const res = await fetch(API+'/api'+path, {
+    ...opts,
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+TOKEN,...(opts.headers||{})}
+  });
+  const data = await res.json();
+  if(!res.ok) throw new Error(data.error||'Erreur serveur');
+  return data;
+}
+
+function openModal(title, bodyHtml, footerHtml='', wide=false){
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+  document.getElementById('modal-footer').innerHTML = footerHtml ||
+    '<button class="btn btn-outline" onclick="closeModal()">Fermer</button>';
+  const box = document.getElementById('modal-box');
+  box.className = 'modal' + (wide?' wide':'');
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal-overlay').classList.remove('open'); }
+
+// ── AUTH ──────────────────────────────────────────────────────────────────
+
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-pw').value;
+  const err = document.getElementById('login-error');
+  err.style.display='none';
+  try {
+    const data = await api('/login',{method:'POST',body:JSON.stringify({email,password:pw})});
+    TOKEN = data.token;
+    localStorage.setItem('hbtoken', TOKEN);
+    USER_ROLE = data.role; USER_EMAIL = data.email;
+    initApp();
+  } catch(e){ err.textContent=e.message; err.style.display='block'; }
+}
+document.getElementById('login-pw').addEventListener('keydown',e=>e.key==='Enter'&&doLogin());
+document.getElementById('login-email').addEventListener('keydown',e=>e.key==='Enter'&&doLogin());
+
+function logout(){
+  TOKEN=''; USER_ROLE=''; USER_EMAIL=''; CURRENT_AFF_ID=null;
+  localStorage.removeItem('hbtoken');
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-page').style.display='flex';
+}
+
+async function initApp(){
+  try {
+    const [me, settings] = await Promise.all([api('/me'), api('/settings')]);
+    SETTINGS = settings;
+    USER_ROLE = me.role || USER_ROLE;
+    USER_EMAIL = me.email || USER_EMAIL;
+    if(USER_ROLE==='affiliate') CURRENT_AFF_ID = me.id;
+    document.getElementById('login-page').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('user-avatar').textContent = USER_EMAIL.substring(0,2).toUpperCase();
+    document.getElementById('user-name').textContent = USER_ROLE==='affiliate'
+      ? ((me.prenom||'')+' '+(me.nom||'')).trim() || USER_EMAIL
+      : USER_EMAIL;
+    document.getElementById('user-role-label').textContent = USER_ROLE==='admin'?'Administrateur':'Affilié';
+    document.getElementById('sidebar-role').textContent = USER_ROLE==='admin'?'Administration':'Espace Affilié';
+    buildNav();
+  } catch(e){ console.error(e); logout(); }
+}
+
+function buildNav(){
+  const nav = document.getElementById('sidebar-nav');
+  const adminItems = [
+    {id:'dashboard',icon:'▦',label:'Dashboard'},
+    {id:'affiliates',icon:'◈',label:'Affiliés'},
+    {id:'settings-page',icon:'⚙',label:'Paramétrage'},
+  ];
+  const affItems = [
+    {id:'aff-dashboard',icon:'▦',label:'Mon Dashboard'},
+    {id:'aff-salons',icon:'✦',label:'Mes Salons'},
+    {id:'aff-commissions',icon:'◈',label:'Mes Commissions'},
+    {id:'aff-profile',icon:'◉',label:'Mon Profil'},
+  ];
+  const items = USER_ROLE==='admin' ? adminItems : affItems;
+  nav.innerHTML = items.map(i=>`
+    <div class="nav-item" id="nav-${i.id}" onclick="navigate('${i.id}')">
+      <span class="icon">${i.icon}</span>${i.label}
+    </div>`).join('');
+  navigate(items[0].id);
+}
+
+function navigate(page){
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById('nav-'+page);
+  if(el) el.classList.add('active');
+  const titles={
+    'dashboard':'Dashboard','affiliates':'Gestion des Affiliés','settings-page':'Paramétrage',
+    'aff-dashboard':'Mon Dashboard','aff-salons':'Mes Salons',
+    'aff-commissions':'Mes Commissions','aff-profile':'Mon Profil',
+  };
+  document.getElementById('page-title').textContent = titles[page]||page;
+  document.getElementById('topbar-actions').innerHTML='';
+  if(chartInstance){chartInstance.destroy();chartInstance=null;}
+  const pages={
+    'dashboard':renderAdminDashboard,'affiliates':renderAffiliates,'settings-page':renderSettings,
+    'aff-dashboard':renderAffDashboard,'aff-salons':renderAffSalons,
+    'aff-commissions':renderAffCommissions,'aff-profile':renderAffProfile,
+  };
+  if(pages[page]) pages[page]();
+}
+
+// ── ADMIN: DASHBOARD ──────────────────────────────────────────────────────
+
+async function renderAdminDashboard(){
+  document.getElementById('page-content').innerHTML='<div class="empty"><span class="empty-icon">⏳</span><p>Chargement...</p></div>';
+  const stats = await api('/stats');
+  document.getElementById('page-content').innerHTML=`
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-icon bee">👥</div><div><div class="stat-value">${stats.affilies_actifs}</div><div class="stat-label">Affiliés Actifs</div></div></div>
+      <div class="stat-card"><div class="stat-icon blue">✂️</div><div><div class="stat-value">${stats.salons_total}</div><div class="stat-label">Salons Référencés</div></div></div>
+      <div class="stat-card"><div class="stat-icon orange">💰</div><div><div class="stat-value">${fmt(stats.commissions_totales)}</div><div class="stat-label">Commissions Totales</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">${fmt(stats.commissions_versees)}</div><div class="stat-label">Versées</div></div></div>
+      <div class="stat-card"><div class="stat-icon red">⏳</div><div><div class="stat-value">${fmt(stats.commissions_restantes)}</div><div class="stat-label">Restantes à Verser</div></div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Évolution des Commissions</span></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="chart-main"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Top Affiliés</span></div>
+        <div class="card-body">
+          ${stats.top_affilies.length ? stats.top_affilies.map((a,i)=>`
+            <div class="top-item">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="top-rank ${i===0?'gold':''}">${i+1}</div>
+                <span style="font-size:13px;font-weight:600">${a.nom||'—'}</span>
+              </div>
+              <span style="font-size:13px;font-weight:700;color:var(--green)">${fmt(a.total)}</span>
+            </div>`).join('') : '<div class="empty" style="padding:20px"><span class="empty-icon" style="font-size:28px">📊</span><p>Aucune donnée</p></div>'}
+        </div>
+      </div>
+    </div>`;
+  const ctx=document.getElementById('chart-main').getContext('2d');
+  chartInstance=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:stats.evolution_mensuelle.map(m=>m.mois.substring(0,4)),
+      datasets:[{
+        label:'Commissions (MAD)',
+        data:stats.evolution_mensuelle.map(m=>m.commission),
+        backgroundColor:'rgba(0,0,0,.85)',borderRadius:5,
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>v.toLocaleString()},grid:{color:'#F3F4F6'}}}}
+  });
+}
+
+// ── ADMIN: AFFILIÉS ───────────────────────────────────────────────────────
+
+async function renderAffiliates(){
+  document.getElementById('topbar-actions').innerHTML=`
+    <div class="search-wrap"><span class="si">🔍</span>
+      <input id="search-aff" type="text" placeholder="Rechercher un affilié..." oninput="filterAffiliates()"/>
+    </div>
+    <button class="btn btn-black" onclick="openNewAffModal()">+ Nouvel Affilié</button>`;
+  document.getElementById('page-content').innerHTML='<div class="empty"><span class="empty-icon">⏳</span><p>Chargement...</p></div>';
+  window._affiliates = await api('/affiliates');
+  renderAffTable(window._affiliates);
+}
+
+function filterAffiliates(){
+  const q=document.getElementById('search-aff').value.toLowerCase();
+  renderAffTable(window._affiliates.filter(a=>(a.nom+' '+a.prenom+' '+a.email+' '+a.code_parrain).toLowerCase().includes(q)));
+}
+
+function renderAffTable(list){
+  if(!list.length){
+    document.getElementById('page-content').innerHTML='<div class="empty"><span class="empty-icon">👥</span><p>Aucun affilié</p></div>';
+    return;
+  }
+  document.getElementById('page-content').innerHTML=`
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">${list.length} affilié(s)</span>
+    </div>
+    <table><thead><tr>
+      <th>Affilié</th><th>Code</th><th>Commission</th><th>Salons</th>
+      <th>Total Comm.</th><th>Versée</th><th>Restante</th><th>Statut</th><th></th>
+    </tr></thead>
+    <tbody>${list.map(a=>`
+      <tr>
+        <td>
+          <div style="font-weight:700">${a.prenom||''} ${a.nom||''}</div>
+          <div style="font-size:11px;color:var(--muted)">${a.email}</div>
+          <div style="font-size:11px;color:var(--muted)">${a.telephone||''} ${a.instagram?'· '+a.instagram:''}</div>
+        </td>
+        <td><span class="badge black">${a.code_parrain||'—'}</span></td>
+        <td>
+          <div style="font-weight:700">${fmtPct(a.taux_commission)}</div>
+          <div style="font-size:11px;color:var(--muted)">${a.duree_commission} mois</div>
+        </td>
+        <td><strong>${a.nb_salons}</strong></td>
+        <td style="font-weight:700">${fmt(a.commission_totale)}</td>
+        <td style="color:var(--green);font-weight:700">${fmt(a.commission_versee)}</td>
+        <td style="color:${a.commission_restante>0?'var(--red)':'var(--green)'};font-weight:700">${fmt(a.commission_restante)}</td>
+        <td><span class="badge ${a.statut==='Actif'?'green':'gray'}">${a.statut}</span></td>
+        <td>
+          <div style="display:flex;gap:5px">
+            <button class="btn btn-sm btn-outline" onclick="openAffDetail(${a.id},'${(a.prenom||'')+' '+(a.nom||'')}')">Détail</button>
+            <button class="btn btn-sm btn-outline" onclick="openEditAff(${a.id})">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteAff(${a.id})">🗑</button>
+          </div>
+        </td>
+      </tr>`).join('')}
+    </tbody></table>
+  </div>`;
+}
+
+function openNewAffModal(){
+  openModal('Nouvel Affilié', `
+    <div class="info-banner">ℹ️ Le taux et la durée de commission s'appliquent à tous les salons de cet affilié.</div>
+    <div class="form-grid">
+      <div class="field-group"><label>Prénom</label><input id="f-prenom" type="text"/></div>
+      <div class="field-group"><label>Nom</label><input id="f-nom" type="text"/></div>
+      <div class="field-group form-full"><label>Email (identifiant de connexion)</label><input id="f-email" type="email"/></div>
+      <div class="field-group"><label>Téléphone</label><input id="f-tel" type="text" placeholder="+212 6XX XXX XXX"/></div>
+      <div class="field-group"><label>Instagram</label><input id="f-insta" type="text" placeholder="@handle"/></div>
+      <div class="field-group"><label>Taux de Commission</label>
+        <input id="f-taux" type="number" step="0.01" value="0.3" min="0" max="1"/>
+        <span class="field-hint">Ex: 0.3 = 30%</span>
+      </div>
+      <div class="field-group"><label>Durée Commission (mois)</label>
+        <input id="f-duree" type="number" value="3" min="1" max="12"/>
+        <span class="field-hint">Nb de mois après début d'abonnement</span>
+      </div>
+      <div class="field-group"><label>Date d'adhésion</label>
+        <input id="f-date" type="date" value="${new Date().toISOString().split('T')[0]}"/>
+      </div>
+      <div class="field-group"><label>Statut</label>
+        <select id="f-statut"><option>Actif</option><option>Inactif</option></select>
+      </div>
+      <div class="field-group form-full"><label>Mot de passe temporaire</label>
+        <input id="f-pw" type="text" value="Affilie2024!"/>
+      </div>
+    </div>`,
+    `<button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+     <button class="btn btn-black" onclick="saveNewAff()">Créer l'affilié</button>`);
+}
+
+async function saveNewAff(){
+  try {
+    const r = await api('/affiliates',{method:'POST',body:JSON.stringify({
+      nom:document.getElementById('f-nom').value,
+      prenom:document.getElementById('f-prenom').value,
+      email:document.getElementById('f-email').value,
+      telephone:document.getElementById('f-tel').value,
+      instagram:document.getElementById('f-insta').value,
+      taux_commission:parseFloat(document.getElementById('f-taux').value)||0.3,
+      duree_commission:parseInt(document.getElementById('f-duree').value)||3,
+      date_adhesion:document.getElementById('f-date').value,
+      statut:document.getElementById('f-statut').value,
+      password:document.getElementById('f-pw').value,
+    })});
+    closeModal(); toast(`Affilié créé — Code: ${r.code_parrain}`); renderAffiliates();
+  } catch(e){ toast(e.message,false); }
+}
+
+async function openEditAff(id){
+  const a = window._affiliates.find(x=>x.id===id);
+  if(!a) return;
+  openModal('Modifier l\'Affilié', `
+    <div class="form-grid">
+      <div class="field-group"><label>Prénom</label><input id="f-prenom" type="text" value="${a.prenom||''}"/></div>
+      <div class="field-group"><label>Nom</label><input id="f-nom" type="text" value="${a.nom||''}"/></div>
+      <div class="field-group"><label>Téléphone</label><input id="f-tel" type="text" value="${a.telephone||''}"/></div>
+      <div class="field-group"><label>Instagram</label><input id="f-insta" type="text" value="${a.instagram||''}"/></div>
+      <div class="field-group"><label>Taux de Commission</label>
+        <input id="f-taux" type="number" step="0.01" value="${a.taux_commission||0.3}"/>
+        <span class="field-hint">Ex: 0.3 = 30% — recalcule automatiquement</span>
+      </div>
+      <div class="field-group"><label>Durée Commission (mois)</label>
+        <input id="f-duree" type="number" value="${a.duree_commission||3}" min="1" max="12"/>
+      </div>
+      <div class="field-group"><label>Date d'adhésion</label>
+        <input id="f-date" type="date" value="${a.date_adhesion||''}"/>
+      </div>
+      <div class="field-group"><label>Statut</label>
+        <select id="f-statut">
+          <option ${a.statut==='Actif'?'selected':''}>Actif</option>
+          <option ${a.statut==='Inactif'?'selected':''}>Inactif</option>
+        </select>
+      </div>
+      <div class="field-group form-full"><label>Nouveau mot de passe (laisser vide = inchangé)</label>
+        <input id="f-pw" type="text" placeholder=""/>
+      </div>
+    </div>`,
+    `<button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+     <button class="btn btn-black" onclick="saveEditAff(${id})">Enregistrer</button>`);
+}
+
+async function saveEditAff(id){
+  try {
+    await api('/affiliates/'+id,{method:'PUT',body:JSON.stringify({
+      nom:document.getElementById('f-nom').value,
+      prenom:document.getElementById('f-prenom').value,
+      telephone:document.getElementById('f-tel').value,
+      instagram:document.getElementById('f-insta').value,
+      taux_commission:parseFloat(document.getElementById('f-taux').value)||0.3,
+      duree_commission:parseInt(document.getElementById('f-duree').value)||3,
+      date_adhesion:document.getElementById('f-date').value,
+      statut:document.getElementById('f-statut').value,
+      password:document.getElementById('f-pw').value||undefined,
+    })});
+    closeModal(); toast('Affilié mis à jour'); renderAffiliates();
+  } catch(e){ toast(e.message,false); }
+}
+
+async function deleteAff(id){
+  if(!confirm('Supprimer cet affilié et tous ses salons ?')) return;
+  try { await api('/affiliates/'+id,{method:'DELETE'}); toast('Affilié supprimé'); renderAffiliates(); }
+  catch(e){ toast(e.message,false); }
+}
+
+// ── ADMIN: DÉTAIL AFFILIÉ ─────────────────────────────────────────────────
+
+async function openAffDetail(affId, name){
+  const [salons, versements] = await Promise.all([
+    api('/affiliates/'+affId+'/salons'),
+    api('/affiliates/'+affId+'/versements')
+  ]);
+  const ML=['Janv','Févr','Mars','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
+  const MONTHS=['janv','fevr','mars','avr','mai','juin','juil','aout','sept','oct','nov','dec'];
+  const prix = parseFloat(SETTINGS.prix_par_employe||200);
+  const totalVerse = versements.reduce((s,v)=>s+v.montant,0);
+
+  const salonsHtml = salons.length ? salons.map(s=>{
+    const c=s.commissions||{};
+    const commTotal=MONTHS.reduce((sum,m)=>sum+(c['comm_'+m]||0),0);
+    const paidCount=MONTHS.filter(m=>c['paid_'+m]&&c['comm_'+m]>0).length;
+    const activeMonths=MONTHS.filter(m=>c['comm_'+m]>0).length;
+    return `
+    <div class="salon-card">
+      <div class="salon-card-header">
+        <div>
+          <div style="font-weight:700;font-size:14px">✂️ ${s.nom||'Salon sans nom'}</div>
+          <div style="font-size:12px;color:var(--muted)">${s.ville||'—'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge ${paidCount===activeMonths&&activeMonths>0?'green':'orange'}">${paidCount}/${activeMonths} mois payés</span>
+          <button class="btn btn-sm btn-outline" onclick="openEditSalon(${s.id},${affId},'${name}')">✏️ Modifier</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteSalon(${s.id},${affId},'${name}')">🗑</button>
+        </div>
+      </div>
+      <div class="salon-card-body">
+        <div class="salon-meta">
+          <span>👤 <strong>${s.nb_employes||0}</strong> employé(s)</span>
+          <span>💵 Abonnement: <strong>${fmt(s.abonnement)}</strong>/mois</span>
+          <span>📅 Début: <strong>${fmtDate(s.date_debut)}</strong></span>
+          <span>→ 1ère commission: <strong>${commMoisSuivant(s.date_debut)}</strong></span>
+          <span>💰 Taux: <strong>${fmtPct(s.taux_commission)}</strong> × ${s.duree_commission} mois</span>
+          <span style="color:var(--green)">Total: <strong>${fmt(commTotal)}</strong></span>
+        </div>
+        <div class="comm-scroll">
+          <table>
+            <thead><tr>
+              ${ML.map(m=>`<th style="text-align:center">${m}</th>`).join('')}
+            </tr></thead>
+            <tbody><tr>
+              ${MONTHS.map(m=>{
+                const v=c['comm_'+m]||0;
+                return `<td>
+                  <div class="${v>0?'comm-amount':'comm-zero'}">${v>0?fmt(v):'—'}</div>
+                  ${v>0?`<input type="checkbox" class="paid-check" ${c['paid_'+m]?'checked':''}
+                    onchange="togglePaid(${s.id},'${m}',this.checked)" title="Marquer payé"/>`:''}
+                </td>`;
+              }).join('')}
+            </tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty"><span class="empty-icon">✂️</span><p>Aucun salon référencé</p></div>';
+
+  const versList = versements.length ? versements.map(v=>`
+    <div class="vers-item">
+      <div>
+        <div class="vers-amount">${fmt(v.montant)}</div>
+        <div class="vers-meta">${v.note||''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="vers-meta">${fmtDate(v.date)}</span>
+        <button class="btn btn-sm btn-danger" onclick="deleteVersement(${v.id},${affId},'${name}')">🗑</button>
+      </div>
+    </div>`).join('') : '<p style="color:var(--muted);font-size:13px;padding:8px 0">Aucun versement enregistré</p>';
+
+  const commTotale = salons.reduce((s,sl)=>{
+    const c=sl.commissions||{};
+    return s+MONTHS.reduce((ss,m)=>ss+(c['comm_'+m]||0),0);
+  },0);
+
+  openModal(name, `
+    <div class="tabs" id="detail-tabs">
+      <button class="tab active" onclick="switchTab('salons-tab','detail-tabs',this)">✂️ Salons (${salons.length})</button>
+      <button class="tab" onclick="switchTab('vers-tab','detail-tabs',this)">💸 Versements</button>
+    </div>
+    <div id="salons-tab">${salonsHtml}</div>
+    <div id="vers-tab" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+        <div style="background:#F9FAFB;border-radius:8px;padding:14px;text-align:center">
+          <div style="font-size:18px;font-weight:800">${fmt(commTotale)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Commission totale</div>
+        </div>
+        <div style="background:#F0FDF4;border-radius:8px;padding:14px;text-align:center">
+          <div style="font-size:18px;font-weight:800;color:var(--green)">${fmt(totalVerse)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Versé</div>
+        </div>
+        <div style="background:#FEF2F2;border-radius:8px;padding:14px;text-align:center">
+          <div style="font-size:18px;font-weight:800;color:var(--red)">${fmt(commTotale-totalVerse)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Restant</div>
+        </div>
+      </div>
+      ${versList}
+    </div>`,
+    `<button class="btn btn-outline" onclick="openAddSalon(${affId},'${name}')">+ Ajouter un Salon</button>
+     <button class="btn btn-black" onclick="openAddVersement(${affId},'${name}')">💸 Enregistrer un Versement</button>
+     <button class="btn btn-outline" onclick="closeModal()">Fermer</button>`,
+    true);
+}
+
+function switchTab(activeId, tabsId, btn){
+  const tabs=document.getElementById(tabsId);
+  tabs.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  ['salons-tab','vers-tab'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=id===activeId?'block':'none';
+  });
+}
+
+async function togglePaid(salonId, month, checked){
+  try {
+    await api('/commissions/'+salonId,{method:'PUT',body:JSON.stringify({['paid_'+month]:checked})});
+    toast(checked?'Commission marquée payée':'Marquée non payée');
+  } catch(e){ toast(e.message,false); }
+}
+
+function openAddSalon(affId, name){
+  const prix=parseFloat(SETTINGS.prix_par_employe||200);
+  openModal('Ajouter un Salon — '+name, `
+    <div class="info-banner">ℹ️ L'abonnement est calculé automatiquement : <strong>nb employés × ${fmt(prix)}/employé/mois</strong>.
+    La commission démarre le <strong>mois suivant</strong> le début d'abonnement.</div>
+    <div class="form-grid">
+      <div class="field-group"><label>Nom du salon</label><input id="s-nom" type="text"/></div>
+      <div class="field-group"><label>Ville</label><input id="s-ville" type="text"/></div>
+      <div class="field-group">
+        <label>Nombre d'employés</label>
+        <input id="s-emp" type="number" value="0" min="0" oninput="updateAboPreview()"/>
+      </div>
+      <div class="field-group">
+        <label>Abonnement calculé</label>
+        <input id="s-abo-preview" type="text" readonly value="0 MAD"/>
+        <span class="field-hint">${fmt(prix)}/employé/mois</span>
+      </div>
+      <div class="field-group form-full">
+        <label>Date début abonnement</label>
+        <input id="s-date" type="date" value="${new Date().toISOString().split('T')[0]}" oninput="updateAboPreview()"/>
+        <span class="field-hint" id="comm-preview-hint"></span>
+      </div>
+    </div>`,
+    `<button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+     <button class="btn btn-black" onclick="saveNewSalon(${affId},'${name}')">Ajouter le Salon</button>`);
+  updateAboPreview();
+}
+
+function updateAboPreview(){
+  const prix=parseFloat(SETTINGS.prix_par_employe||200);
+  const emp=parseInt(document.getElementById('s-emp')?.value||0);
+  const abo=emp*prix;
+  const previewEl=document.getElementById('s-abo-preview');
+  if(previewEl) previewEl.value=fmt(abo);
+  const hint=document.getElementById('comm-preview-hint');
+  const date=document.getElementById('s-date')?.value;
+  if(hint && date) hint.textContent='→ 1ère commission en '+commMoisSuivant(date);
+}
+
+async function saveNewSalon(affId, name){
+  try {
+    await api('/affiliates/'+affId+'/salons',{method:'POST',body:JSON.stringify({
+      nom:document.getElementById('s-nom').value,
+      ville:document.getElementById('s-ville').value,
+      nb_employes:parseInt(document.getElementById('s-emp').value)||0,
+      date_debut:document.getElementById('s-date').value,
+    })});
+    closeModal(); toast('Salon ajouté avec succès');
+    openAffDetail(affId, name);
+  } catch(e){ toast(e.message,false); }
+}
+
+async function openEditSalon(salonId, affId, name){
+  const salons=await api('/affiliates/'+affId+'/salons');
+  const s=salons.find(x=>x.id===salonId);
+  if(!s) return;
+  const prix=parseFloat(SETTINGS.prix_par_employe||200);
+  openModal('Modifier le Salon', `
+    <div class="warn-banner">⚠️ Modifier les employés ou la date recalcule automatiquement les commissions.</div>
+    <div class="form-grid">
+      <div class="field-group"><label>Nom du salon</label><input id="s-nom" type="text" value="${s.nom||''}"/></div>
+      <div class="field-group"><label>Ville</label><input id="s-ville" type="text" value="${s.ville||''}"/></div>
+      <div class="field-group">
+        <label>Nombre d'employés</label>
+        <input id="s-emp" type="number" value="${s.nb_employes||0}" oninput="updateAboPreview()"/>
+      </div>
+      <div class="field-group">
+        <label>Abonnement calculé</label>
+        <input id="s-abo-preview" type="text" readonly value="${fmt((s.nb_employes||0)*prix)}"/>
+        <span class="field-hint">${fmt(prix)}/employé/mois</span>
+      </div>
+      <div class="field-group form-full">
+        <label>Date début abonnement</label>
+        <input id="s-date" type="date" value="${s.date_debut||''}" oninput="updateAboPreview()"/>
+        <span class="field-hint" id="comm-preview-hint">→ 1ère commission en ${commMoisSuivant(s.date_debut)}</span>
+      </div>
+    </div>`,
+    `<button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+     <button class="btn btn-black" onclick="saveEditSalon(${salonId},${affId},'${name}')">Enregistrer</button>`);
+}
+
+async function saveEditSalon(salonId, affId, name){
+  try {
+    await api('/salons/'+salonId,{method:'PUT',body:JSON.stringify({
+      nom:document.getElementById('s-nom').value,
+      ville:document.getElementById('s-ville').value,
+      nb_employes:parseInt(document.getElementById('s-emp').value)||0,
+      date_debut:document.getElementById('s-date').value,
+    })});
+    closeModal(); toast('Salon mis à jour'); openAffDetail(affId, name);
+  } catch(e){ toast(e.message,false); }
+}
+
+async function deleteSalon(salonId, affId, name){
+  if(!confirm('Supprimer ce salon et ses commissions ?')) return;
+  try { await api('/salons/'+salonId,{method:'DELETE'}); toast('Salon supprimé'); openAffDetail(affId, name); }
+  catch(e){ toast(e.message,false); }
+}
+
+function openAddVersement(affId, name){
+  const today=new Date().toISOString().split('T')[0];
+  openModal('Enregistrer un Versement — '+name, `
+    <div class="form-grid">
+      <div class="field-group"><label>Montant (MAD)</label><input id="v-montant" type="number" min="0" placeholder="0"/></div>
+      <div class="field-group"><label>Date du versement</label><input id="v-date" type="date" value="${today}"/></div>
+      <div class="field-group form-full"><label>Note (optionnel)</label>
+        <input id="v-note" type="text" placeholder="ex: Virement mars 2026"/>
+      </div>
+    </div>`,
+    `<button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+     <button class="btn btn-black" onclick="saveVersement(${affId},'${name}')">Enregistrer</button>`);
+}
+
+async function saveVersement(affId, name){
+  try {
+    await api('/affiliates/'+affId+'/versements',{method:'POST',body:JSON.stringify({
+      montant:parseFloat(document.getElementById('v-montant').value)||0,
+      date:document.getElementById('v-date').value,
+      note:document.getElementById('v-note').value,
+    })});
+    closeModal(); toast('Versement enregistré'); openAffDetail(affId, name);
+  } catch(e){ toast(e.message,false); }
+}
+
+async function deleteVersement(vid, affId, name){
+  if(!confirm('Supprimer ce versement ?')) return;
+  try { await api('/versements/'+vid,{method:'DELETE'}); toast('Versement supprimé'); openAffDetail(affId, name); }
+  catch(e){ toast(e.message,false); }
+}
+
+// ── ADMIN: PARAMÉTRAGE ────────────────────────────────────────────────────
+
+async function renderSettings(){
+  SETTINGS = await api('/settings');
+  document.getElementById('page-content').innerHTML=`
+    <div style="max-width:600px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">⚙️ Paramétrage Général</span></div>
+        <div class="card-body">
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Prix par employé / mois</div>
+              <div class="setting-desc">Multiplie par le nombre d'employés de chaque salon pour calculer l'abonnement mensuel</div>
+            </div>
+            <div class="setting-control">
+              <input id="s-prix" type="number" value="${SETTINGS.prix_par_employe||200}" min="0"/>
+              <span style="font-size:13px;color:var(--muted)">MAD</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Exemple de calcul</div>
+              <div class="setting-desc" id="exemple-calc">Salon de 5 employés → abonnement de ${fmt(5*(SETTINGS.prix_par_employe||200))}/mois</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;padding-top:16px">
+            <button class="btn btn-black" onclick="saveSettings()">💾 Enregistrer et recalculer</button>
+            <p style="font-size:12px;color:var(--muted);margin-top:8px">⚠️ Modifier le prix recalculera automatiquement toutes les commissions existantes.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">📋 Logique de Commission</span></div>
+        <div class="card-body" style="font-size:13px;line-height:1.8;color:#374151">
+          <p><strong>Abonnement salon</strong> = Nb employés × Prix/employé/mois</p>
+          <p><strong>Commission mensuelle</strong> = Abonnement × Taux de commission de l'affilié</p>
+          <p><strong>Durée</strong> = Taux appliqué pendant N mois (défini par affilié)</p>
+          <p><strong>Timing</strong> = La commission démarre le <strong>mois suivant</strong> le début d'abonnement</p>
+          <div class="info-banner" style="margin-top:12px">
+            📌 Exemple : Salon commence le 20/02/2026 | Affilié à 30% sur 3 mois<br/>
+            → Commissions en <strong>Mars, Avril, Mai 2026</strong>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('s-prix').addEventListener('input', ()=>{
+    const p=parseFloat(document.getElementById('s-prix').value)||0;
+    document.getElementById('exemple-calc').textContent=`Salon de 5 employés → abonnement de ${fmt(5*p)}/mois`;
+  });
+}
+
+async function saveSettings(){
+  try {
+    const prix=parseFloat(document.getElementById('s-prix').value)||200;
+    await api('/settings',{method:'PUT',body:JSON.stringify({prix_par_employe:prix})});
+    SETTINGS.prix_par_employe=prix;
+    toast('Paramétrage enregistré — commissions recalculées');
+    renderSettings();
+  } catch(e){ toast(e.message,false); }
+}
+
+// ── ESPACE AFFILIÉ ────────────────────────────────────────────────────────
+
+async function renderAffDashboard(){
+  document.getElementById('page-content').innerHTML='<div class="empty"><span class="empty-icon">⏳</span><p>Chargement...</p></div>';
+  const [me, salons, versements] = await Promise.all([
+    api('/me'),
+    api('/affiliates/'+CURRENT_AFF_ID+'/salons'),
+    api('/affiliates/'+CURRENT_AFF_ID+'/versements')
+  ]);
+  const MONTHS=['janv','fevr','mars','avr','mai','juin','juil','aout','sept','oct','nov','dec'];
+  const ML=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
+  const monthly=MONTHS.map(m=>salons.reduce((t,s)=>t+(s.commissions['comm_'+m]||0),0));
+  const totalComm=monthly.reduce((a,b)=>a+b,0);
+  const totalVerse=versements.reduce((s,v)=>s+v.montant,0);
+
+  document.getElementById('page-content').innerHTML=`
+    <div class="profile-header">
+      <div class="profile-avatar">${((me.prenom||me.email||'A')[0]).toUpperCase()}</div>
+      <div>
+        <div class="profile-name">${me.prenom||''} ${me.nom||''}</div>
+        <div class="profile-meta">
+          <span>📧 ${me.email}</span>
+          <span>📱 ${me.telephone||'—'}</span>
+          <span>📸 ${me.instagram||'—'}</span>
+          <span>🏷️ Code: <strong>${me.code_parrain}</strong></span>
+          <span class="badge green">${me.statut||'Actif'}</span>
+        </div>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-icon blue">✂️</div><div><div class="stat-value">${salons.length}</div><div class="stat-label">Salons Référencés</div></div></div>
+      <div class="stat-card"><div class="stat-icon orange">💰</div><div><div class="stat-value">${fmt(totalComm)}</div><div class="stat-label">Commissions Totales</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value">${fmt(totalVerse)}</div><div class="stat-label">Reçues</div></div></div>
+      <div class="stat-card"><div class="stat-icon red">⏳</div><div><div class="stat-value">${fmt(totalComm-totalVerse)}</div><div class="stat-label">En attente</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Évolution de mes Commissions</span></div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="chart-aff"></canvas></div></div>
+    </div>`;
+  const ctx=document.getElementById('chart-aff').getContext('2d');
+  chartInstance=new Chart(ctx,{
+    type:'line',
+    data:{labels:ML,datasets:[{label:'Commission (MAD)',data:monthly,
+      borderColor:'#000',backgroundColor:'rgba(0,0,0,.07)',
+      borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#000',fill:true,tension:.4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>v.toLocaleString()},grid:{color:'#F3F4F6'}}}}
+  });
+}
+
+async function renderAffSalons(){
+  document.getElementById('page-content').innerHTML='<div class="empty"><span class="empty-icon">⏳</span><p>Chargement...</p></div>';
+  const salons=await api('/affiliates/'+CURRENT_AFF_ID+'/salons');
+  const MONTHS=['janv','fevr','mars','avr','mai','juin','juil','aout','sept','oct','nov','dec'];
+  if(!salons.length){
+    document.getElementById('page-content').innerHTML='<div class="empty"><span class="empty-icon">✂️</span><p>Aucun salon référencé pour le moment</p></div>';
+    return;
+  }
+  document.getElementById('page-content').innerHTML=salons.map(s=>{
+    const c=s.commissions||{};
+    const total=MONTHS.reduce((sum,m)=>sum+(c['comm_'+m]||0),0);
+    const paidCount=MONTHS.filter(m=>c['paid_'+m]&&c['comm_'+m]>0).length;
+    const activeMonths=MONTHS.filter(m=>c['comm_'+m]>0).length;
+    return `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">✂️ ${s.nom||'Salon'}</div>
+          <div style="font-size:12px;color:var(--muted)">📍 ${s.ville||'—'}</div>
+        </div>
+        <span class="badge ${paidCount===activeMonths&&activeMonths>0?'green':'orange'}">${paidCount}/${activeMonths} payés</span>
+      </div>
+      <div class="card-body">
+        <div class="salon-meta">
+          <span>👤 <strong>${s.nb_employes||0}</strong> employé(s)</span>
+          <span>💵 Abonnement: <strong>${fmt(s.abonnement)}</strong>/mois</span>
+          <span>📅 Depuis: <strong>${fmtDate(s.date_debut)}</strong></span>
+          <span>💰 Commission: <strong>${fmtPct(s.taux_commission)}</strong> / ${s.duree_commission} mois</span>
+          <span style="color:var(--green)">Total: <strong>${fmt(total)}</strong></span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function renderAffCommissions(){
+  document.getElementById('page-content').innerHTML='<div class="empty"><span class="empty-icon">⏳</span><p>Chargement...</p></div>';
+  const [salons,versements]=await Promise.all([
+    api('/affiliates/'+CURRENT_AFF_ID+'/salons'),
+    api('/affiliates/'+CURRENT_AFF_ID+'/versements')
+  ]);
+  const MONTHS=['janv','fevr','mars','avr','mai','juin','juil','aout','sept','oct','nov','dec'];
+  const ML=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  let grandTotal=0;
+  const rows=MONTHS.map((m,i)=>{
+    let total=0;
+    let allPaid=true, hasSalon=false;
+    salons.forEach(s=>{
+      const c=s.commissions||{};
+      if(c['comm_'+m]>0){hasSalon=true;total+=c['comm_'+m];if(!c['paid_'+m])allPaid=false;}
+    });
+    grandTotal+=total;
+    let badge='';
+    if(!hasSalon) badge='<span class="badge gray">—</span>';
+    else if(allPaid) badge='<span class="badge green">✅ Reçue</span>';
+    else badge='<span class="badge orange">⏳ En attente</span>';
+    return `<tr>
+      <td><strong>${ML[i]}</strong></td>
+      <td style="font-weight:700">${fmt(total)}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+  const totalVerse=versements.reduce((s,v)=>s+v.montant,0);
+  document.getElementById('page-content').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Récapitulatif des Commissions</span></div>
+        <table><thead><tr><th>Mois</th><th>Commission</th><th>Statut</th></tr></thead>
+        <tbody>${rows}
+          <tr style="background:#F9FAFB">
+            <td><strong>Total</strong></td>
+            <td><strong>${fmt(grandTotal)}</strong></td>
+            <td></td>
+          </tr>
+        </tbody></table>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Historique des Versements</span></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+            <div style="background:#F0FDF4;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:18px;font-weight:800;color:var(--green)">${fmt(totalVerse)}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">Total versé</div>
+            </div>
+            <div style="background:#FEF2F2;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:18px;font-weight:800;color:var(--red)">${fmt(grandTotal-totalVerse)}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">Restant dû</div>
+            </div>
+          </div>
+          ${versements.length?versements.map(v=>`
+            <div class="vers-item">
+              <div><div class="vers-amount">${fmt(v.montant)}</div><div class="vers-meta">${v.note||''}</div></div>
+              <div class="vers-meta">${fmtDate(v.date)}</div>
+            </div>`).join(''):'<p style="color:var(--muted);font-size:13px">Aucun versement reçu</p>'}
+        </div>
+      </div>
+    </div>`;
+}
+
+async function renderAffProfile(){
+  const me=await api('/me');
+  document.getElementById('page-content').innerHTML=`
+    <div style="max-width:480px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Mes Informations</span></div>
+        <div class="card-body">
+          ${[
+            ['Nom complet',(me.prenom||'')+' '+(me.nom||'')],
+            ['Email',me.email],['Téléphone',me.telephone||'—'],
+            ['Instagram',me.instagram||'—'],
+            ['Taux de commission',fmtPct(me.taux_commission)+' pendant '+me.duree_commission+' mois'],
+            ['Date d\'adhésion',fmtDate(me.date_adhesion)],
+            ['Code parrain','<span class="badge black">'+me.code_parrain+'</span>'],
+            ['Statut','<span class="badge green">'+(me.statut||'Actif')+'</span>'],
+          ].map(([label,val])=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #F3F4F6">
+              <span style="font-size:13px;color:var(--muted)">${label}</span>
+              <strong style="font-size:13px">${val}</strong>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">🔐 Changer mon mot de passe</span></div>
+        <div class="card-body">
+          <div style="display:grid;gap:12px">
+            <div class="field-group"><label>Mot de passe actuel</label><input id="pw-old" type="password"/></div>
+            <div class="field-group"><label>Nouveau mot de passe</label><input id="pw-new" type="password"/></div>
+            <div class="field-group"><label>Confirmer le nouveau</label><input id="pw-confirm" type="password"/></div>
+            <button class="btn btn-black" onclick="changePw()">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function changePw(){
+  const old=document.getElementById('pw-old').value;
+  const nw=document.getElementById('pw-new').value;
+  const confirm=document.getElementById('pw-confirm').value;
+  if(nw!==confirm){toast('Les mots de passe ne correspondent pas',false);return;}
+  if(nw.length<6){toast('Minimum 6 caractères',false);return;}
+  try {
+    await api('/change-password',{method:'POST',body:JSON.stringify({old_password:old,new_password:nw})});
+    toast('Mot de passe mis à jour');
+    document.getElementById('pw-old').value='';
+    document.getElementById('pw-new').value='';
+    document.getElementById('pw-confirm').value='';
+  } catch(e){ toast(e.message,false); }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+if(TOKEN) initApp();
+</script>
+</body>
+</html>
