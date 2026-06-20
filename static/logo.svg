@@ -1,8 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
-  <rect width="500" height="500" fill="#000"/>
-  <!-- Icône 日 (grille) -->
-  <rect x="90" y="195" width="80" height="110" rx="3" fill="none" stroke="#fff" stroke-width="10"/>
-  <line x1="90" y1="250" x2="170" y2="250" stroke="#fff" stroke-width="10"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 90" fill="none">
+  <!-- Icône 日 : rectangle externe -->
+  <rect x="8" y="8" width="62" height="74" rx="2" stroke="white" stroke-width="9" fill="none"/>
+  <!-- Ligne horizontale centrale -->
+  <line x1="8" y1="45" x2="70" y2="45" stroke="white" stroke-width="9"/>
+
   <!-- Texte hibee -->
-  <text x="195" y="275" font-family="'Arial','Helvetica',sans-serif" font-size="82" font-weight="700" fill="#fff" letter-spacing="-2">hibee</text>
+  <text x="96" y="65"
+    font-family="'Arial Rounded MT Bold','Trebuchet MS','Helvetica Neue',Arial,sans-serif"
+    font-size="58"
+    font-weight="800"
+    fill="white"
+    letter-spacing="-1">hibee</text>
 </svg>

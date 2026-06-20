@@ -23,7 +23,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F3F4F
 .login-card{background:#fff;border-radius:20px;padding:48px 40px;width:420px;
   box-shadow:0 24px 80px rgba(0,0,0,.4)}
 .login-logo{text-align:center;margin-bottom:36px}
-.login-logo img{height:52px;filter:invert(1);margin-bottom:12px}
+.login-logo img{height:52px;background:#000;border-radius:12px;padding:10px 18px;margin-bottom:16px}
 .login-logo p{color:var(--muted);font-size:14px}
 .login-form .field{margin-bottom:18px}
 .login-form label{display:block;font-size:12px;font-weight:700;color:var(--muted);
@@ -48,7 +48,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#F3F4F
 .sidebar{width:250px;background:#0A0A0A;color:#fff;display:flex;flex-direction:column;
   position:fixed;top:0;left:0;height:100vh;z-index:100}
 .sidebar-header{padding:24px 20px 18px;border-bottom:1px solid rgba(255,255,255,.07)}
-.sidebar-header img{height:28px;filter:invert(1)}
+.sidebar-header img{height:42px;filter:invert(1)}
 .sidebar-role{font-size:10px;color:rgba(255,255,255,.35);text-transform:uppercase;
   letter-spacing:1.5px;margin-top:8px;font-weight:600}
 .sidebar-nav{flex:1;padding:12px 10px;overflow-y:auto}
@@ -272,11 +272,6 @@ tr:hover td{background:#FAFAFA}
         <input type="password" id="login-pw" placeholder="••••••••" autocomplete="current-password"/>
       </div>
       <button class="btn-login" onclick="doLogin()">Se connecter</button>
-    </div>
-    <div class="login-demo">
-      <p>Comptes démo</p>
-      <code>Admin : admin@hibee.ma / Admin2024!</code>
-      <code>Affilié : affilie1@hibee.ma / Affilie2024!</code>
     </div>
   </div>
 </div>

@@ -79,7 +79,10 @@ def init_db():
 
     # Admin
     c.execute("INSERT OR IGNORE INTO users (email,password,role) VALUES (?,?,?)",
-              ('admin@hibee.ma', hash_pw('Admin2024!'), 'admin'))
+              ('admin@hibee.ma', hash_pw('HibeeSAAS2026!'), 'admin'))
+    # Mettre à jour le mdp admin si déjà existant
+    c.execute("UPDATE users SET password=? WHERE email=? AND role='admin'",
+              (hash_pw('HibeeSAAS2026!'), 'admin@hibee.ma'))
     # Affilié démo
     c.execute("INSERT OR IGNORE INTO users (email,password,role) VALUES (?,?,?)",
               ('affilie1@hibee.ma', hash_pw('Affilie2024!'), 'affiliate'))
@@ -597,6 +600,5 @@ init_db()
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print(f"\n🐝 hibee Affiliates — http://localhost:{port}")
-    print("   Admin  : admin@hibee.ma / Admin2024!")
-    print("   Affilié: affilie1@hibee.ma / Affilie2024!\n")
+    print("   Admin  : admin@hibee.ma / HibeeSAAS2026!\n")
     app.run(debug=False, host='0.0.0.0', port=port)
